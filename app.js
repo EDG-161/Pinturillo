@@ -346,7 +346,7 @@ io.on('connection', function (socket) {
 
 app.use(express.static('public'));
 
-http.listen(3030, () => {
+http.listen(3000, () => {
     console.log("Escuchando al puerto 3000");
 });
 
@@ -411,7 +411,7 @@ class Game {
         try {
             return this.word;
         } catch (err) { console.log(err); }
-    }   
+    }
 
     setWord() {
         try {
@@ -458,7 +458,7 @@ class Game {
         try {
             let j = 0;
             var a = setInterval(() => {
-                if (this.q == 2) {
+                if (this.q == 3) {
 
                     var aux = [];
                     var k,l;
