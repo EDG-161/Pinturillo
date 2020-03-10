@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Partida</title>
+    <link rel="stylesheet" href="./CSS/bootstrap.min.css">
+    <link rel="stylesheet" href="./CSS/bootstrap.css">
+    <link rel="stylesheet" href="./CSS/styleDraw.css">
+    <script src="./JS/bootstrap.min.js"></script>
+    <script src="JS/socket.io.js"></script>
+    <script src="JS/jquery.min.js"></script>
+    <script src="JS/validate.js"></script>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12 text-center">
+                    <img id="logo" src="IMG/texto.png">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-3">
+                    <div id="points" class="scrollableBox">
+                        <div id="time"></div>
+                        <p align="center">PUNTOS</p>
+                        <div id="scoreboard"></div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div id="canvasDiv">
+                        <canvas id="canvas" width="600" height="400"></canvas>
+                        <div id="controls">
+                            <input type="color" value="#000000" id="colors">
+                            <input type="button" onclick="cleanCanvas();" value="Limpiar"><br>
+                            <select id="lineThickness">
+                                <option>1</option>
+                                <option>2</option>
+                                <option>3</option>
+                                <option>4</option>
+                                <option>5</option>
+                            </select>
+                            <input type="button" id="erase" value="Goma" onclick="eraseF();">
+                        </div>
+                        <div id="word"></div>
+                        <div id="gameWord">
+                            <p>¿Podras adivinar la palabra?</p>
+                            <input type="text" id="sendWord" onkeyup="sendWord(event);">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="chat">
+                        <p align="center">CHAT</p>
+                        <div style="height: 70%; border:solid black 1px">
+                            <div id="mensajes" class="scrollableBox"></div>
+                        </div>
+                        <form style="text-align: center" id="formChat">
+                            <input id="message" placeholder="Ingresa tu mensaje">
+                            <button type="submit" class="button">Enviar</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <script>
+
+        $("#controls").hide();
+        $("#gameWord").hide();
+
+        if (sessionStorage.getItem("turn") == null || sessionStorage.getItem("turn") == undefined) {
+            window.location.href = "index.html";
+        }
+
+        document.getElementById("colors").addEventListener("change", changeColor, false);
+        document.getElementById("lineThickness").addEventListener("change", changeLineThickness, false);
+
+        $.ajax({
+            url: '/validateSession',
+            type: 'POST',
+            success: function(response){
+                if(response == "NO"){
+                    location.href = "index.html";
+                }
+            }
+        })
+
+        let lineThickness = 1.0;
+        let color = "#000000";
+        let bool = false;
+        let canvas = document.getElementById("canvas");
+        let ctx = canvas.getContext("2d");
+        let localbool = false;
+        let erase = false;
+
+        document.addEventListener("mousedown", mousedown, false);
+        document.addEventListener("mouseup", mouseup, false);
+        document.addEventListener("mousemove", mousemove, false);
+
+        var socket = io.connect('localhost:3000', { transports: ['polling', 'websocket'] });
+
+        $("#formChat").on('submit', function(e){
+            e.preventDefault();
+            if(validateMessage($("#message").val())){
+                socket.emit("sendMessage", remove($("#message").val()));
+                $("#message").val("");
+            }
+        })
+
+        function eraseF() {
+            if (!erase) {
+                $("#canvas").css("cursor", "url('./eraser.cur'), all-scroll");
+                erase = true;
+                $("#erase").val("Lapiz")
+            }
+            else {
+                erase = false;
+                $("#canvas").css("cursor", "url('./Pencils.cur'), crosshair");
+                $("#erase").val("Goma");
+            }
+        }
+
+        function changeLineThickness(e) {
+            lineThickness = e.target.value;
+        }
+
+        function sendWord(e) {
+            if (e.keyCode == 13) {
+                var word = $("#sendWord").val();
+                socket.emit("sendWord", word);
+                $("#sendWord").val("");
+            }
+        }
+
+        function cleanCanvas() {
+            socket.emit("sendDraw", null, null, null, null, null);
+        }
+
+        function changeColor(event) {
+            color = event.target.value;
+        }
+
+        function mousedown(event) {
+            bool = true;
+            if (erase) {
+                socket.emit("sendDraw", event.layerX, event.layerY, "#ffffff", bool, 10);
+            }
+            else {
+                socket.emit("sendDraw", event.layerX, event.layerY, color, bool, lineThickness);
+            }
+        }
+        function mouseup(event) {
+            bool = false;
+            if (erase) {
+                socket.emit("sendDraw", event.layerX, event.layerY, "#ffffff", bool, 10);
+            }
+            else {
+                socket.emit("sendDraw", event.layerX, event.layerY, color, bool, lineThickness);
+            }
+        }
+        function mousemove(event) {
+            if (bool) {
+                if (erase) {
+                    socket.emit("sendDraw", event.layerX, event.layerY, "#ffffff", bool, 20);
+                }
+                else {
+                    socket.emit("sendDraw", event.layerX, event.layerY, color, bool, lineThickness);
+                }
+            }
+        }
+
+        $.ajax({
+            url: "/recoverSessionSocket",
+            type: "POST",
+            success: function (r) {
+                socket.emit("alertS", r);
+            }
+        });
+
+        socket.on("startTimeOut", () => {
+            alert("Comenzamos en 10 segundos la partida");
+        });
+
+        socket.on("getMessage", (message) => {
+            $("#mensajes").append(message);
+        })
+
+        socket.on("timeOutTime", (a) => {
+            $("#canvas").css("cursor", "not-allowed");
+            $("#controls").hide();
+            let b = 5 - a;
+            if (b == 0) {
+                $("#time").html("");
+            }
+            else {
+                $("#time").html(`
+                            <div class="widget">
+                                <div class="number">
+                                    <p>Empezamos en: ${b}</p>
+                                </div>
+                            </div>`);
+            }
+        });
+
+        socket.on("turn", (turn) => {
+            socket.emit("turn?");
+            socket.emit("sendRequestWord");
+        });
+
+        socket.on("drawCursor", () => {
+            $("#canvas").css("cursor", "url('./Pencils.cur'), crosshair");
+            $("#controls").show();
+            $("#gameWord").hide();
+        });
+
+        socket.on("noCursor", () => {
+            $("#canvas").css("cursor", "not-allowed");
+            $("#controls").hide();
+            $("#gameWord").show();
+        });
+
+        socket.on("getWord", (word) => {
+            document.getElementById("canvas").width = 600;
+            $("#word").text(word);
+        });
+
+        socket.on("timeLeftRelax", (seconds) => {
+            $("#time").html(`
+                            <div class="widget">
+                                <div class="number">
+                                    <p>Reiniciando en: ${10 - seconds}</p>
+                                </div>
+                            </div>`);
+        });
+
+        socket.on("timeLeftGame", (seconds) => {
+            if ((60 - seconds) < 0) { }
+            else {
+                $("#time").html(`
+                <div class="widget">
+                                <div class="number">
+                                    <p>Quedan: ${60 - seconds}</p>
+                                </div>
+                            </div>`);
+            }
+        });
+
+        socket.on("getDraw", (x, y, color, bool, lineThickness) => {
+            if (x == null && y == null && color == null && bool == null && lineThickness == null) {
+                document.getElementById("canvas").width = 600;
+            }
+            if (localbool == false && bool == true) {
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                localbool = true;
+            }
+            if (localbool == true && bool == false) {
+                ctx.closePath();
+                localbool = false;
+            }
+            if (bool == true) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = lineThickness;
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            }
+        });
+
+        socket.on("finished", (users) => {
+            var str = "";
+            if(users.length == 1){
+                str+="ha ganado "+users[0].name+" con "+users[0].points+" puntos";
+            }
+            else{
+                str+="empataron ";
+                users.forEach(element => {
+                    str+=element.name+" , ";
+                });
+                str.substring(0,str.length-2);
+                str+=" con "+users[0].points+" puntos";
+            }
+            
+            $("#controls").hide();
+            $("#gameWord").hide();
+            alert("Juego terminado, "+str);
+            location.href = "select.html";
+        });
+
+        socket.on("updateScoreboard", (users) => {
+            var html = `<table class="table text-center"><thead><tr><th>Usuario</th><th>Puntos</th></tr></thead><tbody>`;
+            users.forEach(element => {
+                html += "<tr><td>" + element.name + "</td><td>" + element.points + "</td></tr>";
+            });
+            html += "<tbody></table>";
+            $("#scoreboard").html(html);
+        });
+
+    </script>
+</body>
+
+</html>

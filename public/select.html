@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Salas de Juego</title>
+    <link rel="stylesheet" href="./CSS/bootstrap.min.css">
+    <link rel="stylesheet" href="./CSS/bootstrap.css">
+    <link rel="stylesheet" href="./CSS/style.css">
+    <script src="./JS/bootstrap.min.js"></script>
+    <script src="JS/socket.io.js"></script>
+    <script src="JS/jquery.min.js"></script>
+    <script src="JS/validate.js"></script>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <center><img id="logo" src="IMG/logo.png"></center>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="form-group row">
+                        <form id="formCreate">
+                            <div class="col-md-12">
+                                <center>
+                                    <h1>Crear Sala</h1>
+                                </center>
+                                <div class="error"></div>
+                                <select class="form-control" id="category">
+                                    <option>Seleccione una Categoría</option>
+                                    <option>Música</option>
+                                    <option>Cine</option>
+                                    <option>Alimentos</option>
+                                    <option>Lugares</option>
+                                    <option>Cosas</option>
+                                    <option>Videojuegos</option>
+                                </select>
+                                <input type="text" class="form-control" placeholder="Cantidad de jugadores"
+                                    id="players">
+                                <input type="text" class="form-control" placeholder="Nombre de la partda" id="name">
+                                <center>
+                                    <button type="submit" class="btn btn-success">Crear Partida</button>
+                                </center>
+                                <br>
+                                <div id="rooms"></div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+
+        var socket = io.connect('localhost:3000', { transports: ['polling', 'websocket'] });
+
+        socket.on("wait", (turn, json) => {
+            sessionStorage.setItem("turn", turn);
+            $.ajax({
+                url: "/recoverSessionExpress",
+                data: json,
+                type: "POST"
+            });
+        });
+
+        $.ajax({
+            url: '/validateSession',
+            type: 'POST',
+            success: function(response){
+                if(response == "NO"){
+                    location.href = "index.html";
+                }
+            }
+        })
+
+        socket.on("ready", () => {
+            window.location.href = "draw.html";
+        });
+
+        $("#formCreate").on('submit', function (e) {
+            e.preventDefault();
+            if (validateNumbres($("#players").val(), ".error") && validateTopic($("#category").val(), ".error") && validateName($("#name").val(), ".error")){
+                socket.emit("createRoom", $("#category").val(), $("#players").val(), $("#name").val(), sessionStorage.getItem("userName"));
+            }
+        })
+
+        function joinRoom(room, name) {
+            socket.emit("joinRoom", room, name, sessionStorage.getItem("userName"));
+        }
+
+        socket.on("roomAviables", (rooms) => {
+            var html = `<table class="table table-striped text-center">
+                <thead class="thead-dark">
+                    <tr>
+                        <th scope="col">Partida</th>
+                        <th scope="col">Jugadores disponibles</th>
+                        <th scope="col">Opciones</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+            rooms.forEach(element => {
+                if (element.size - element.users.length != 0) {
+                    html += `<tr>
+                                <td>${element.name}</td>
+                                <td>${element.users.length}/${element.size}</td>
+                                <td><input type='button' class="btn btn-success" value='Unirse' onclick="joinRoom(${element.room},'${element.name}');"></td>
+                            </tr>`;
+                }
+            });
+            html += `</tbody>
+                </table>`;
+            $("#rooms").html(html);
+        });
+
+        socket.on("errorJoin", (error) => {
+            alert(error);
+        })
+
+        socket.on("errorCreateRoom", (err) => {
+            alert(err);
+        })
+
+        setTimeout(() => {
+            socket.emit("getRooms");
+        }, 240);
+
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,49 @@
+body, html{
+    margin: 0;
+    padding: 0;
+}
+
+.container-fluid{
+    background-image: url("../IMG/fondo.png");
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+}
+
+.container{
+    padding-top: 50;
+}
+
+#logo{
+    width: 500px;
+}
+
+.row{
+    display: flex;
+    justify-content: center;
+    align-items: center;    
+}
+.col-md-6, .col-md-8{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.form-group{
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: white;
+}
+
+#login, #formCreate{
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+

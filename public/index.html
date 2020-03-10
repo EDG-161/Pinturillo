@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Registro Pinturillo</title>
+    <link rel="stylesheet" href="./CSS/bootstrap.min.css">
+    <link rel="stylesheet" href="./CSS/bootstrap.css">
+    <link rel="stylesheet" href="./CSS/style.css">
+    <script src="./JS/bootstrap.min.js"></script>
+    <script src="JS/socket.io.js"></script>
+    <script src="JS/jquery.min.js"></script>
+    <script src="JS/validate.js"></script>
+</head>
+
+<body id="body">
+    <div class="container-fluid">
+        <center><img id="logo" src="IMG/logo.png"></center>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group row">
+                        <form id="login" class="form-inline">
+                            <div class="col-md-12">
+                                <center>
+                                    <h1>REGISTRO</h1>
+                                </center>
+                            </div>
+                            <div class="error"></div>
+                            <input type="text" class="form-control" placeholder="Ingresa tu Username" id="username">
+                            <button type="submit" class="btn btn-success">Entrar</button><br><br><br><br><br>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        var socket = io.connect('localhost:3000', { transports: ['polling', 'websocket'] });
+        $("#login").on('submit', function (e) {
+            e.preventDefault();
+            if (validateNick($("#username").val(), ".error")) {
+                $.ajax({
+                    url: "/login",
+                    type: "POST",
+                    data: { user: $("#username").val() },
+                    success: function (r) {
+                        if (r == "") {
+                            sessionStorage.setItem("userName", $("#username").val());
+                            socket.emit("register", $("#username").val());
+                        }else {
+                            alert(r);
+                        }
+                    }
+                });
+            }
+        })
+        socket.on("enter", () => {
+            alert("Entrando al servidor...");
+            window.location.href = "select.html";
+        });
+    </script>
+</body>
+
+</html>
