@@ -103,7 +103,7 @@
         document.addEventListener("mouseup", mouseup, false);
         document.addEventListener("mousemove", mousemove, false);
 
-        var socket = io.connect('https//pinturillo.tk', { transports: ['polling', 'websocket'] });
+        var socket = io.connect('https://pinturillo.tk', { transports: ['polling', 'websocket'] });
 
         $("#formChat").on('submit', function(e){
             e.preventDefault();
