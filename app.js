@@ -346,7 +346,7 @@ io.on('connection', function (socket) {
 
 app.use(express.static('public'));
 
-http.listen(3000, () => {
+http.listen(3030, () => {
     console.log("Escuchando al puerto 3000");
 });
 
