@@ -54,7 +54,7 @@
     </div>
     <script>
 
-        var socket = io.connect('localhost:3000', { transports: ['polling', 'websocket'] });
+        var socket = io.connect('https//pinturillo.tk', { transports: ['polling', 'websocket'] });
 
         socket.on("wait", (turn, json) => {
             sessionStorage.setItem("turn", turn);
